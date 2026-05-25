@@ -1,0 +1,54 @@
+name: Timetable Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      date1:
+        description: "1st choice date (e.g. 8/6/2026)"
+        required: true
+        type: string
+      ward1:
+        description: "1st choice ward"
+        required: true
+        type: choice
+        options: ["8PA", "8PB", "7PA"]
+      date2:
+        description: "2nd choice date (fallback)"
+        required: true
+        type: string
+      ward2:
+        description: "2nd choice ward (fallback)"
+        required: true
+        type: choice
+        options: ["8PA", "8PB", "7PA"]
+      release_time:
+        description: "Release time in 24hr format (e.g. 19:00). Leave blank to start immediately."
+        required: false
+        type: string
+
+jobs:
+  book-shift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install google-auth google-auth-httplib2 google-api-python-client
+
+      - name: Run Timetable Bot
+        env:
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          BOOKING_DATE1: ${{ inputs.date1 }}
+          BOOKING_WARD1: ${{ inputs.ward1 }}
+          BOOKING_DATE2: ${{ inputs.date2 }}
+          BOOKING_WARD2: ${{ inputs.ward2 }}
+          RELEASE_TIME:  ${{ inputs.release_time }}
+        run: python cloud_bot.py
