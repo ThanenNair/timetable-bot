@@ -10,7 +10,13 @@ import sys
 import time
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# All times are interpreted as Malaysia Time (UTC+8)
+MYT = timezone(timedelta(hours=8))
+
+def now_myt():
+    return datetime.now(MYT).replace(tzinfo=None)
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 SPREADSHEET_ID = "1sGtcCSvpKwK8ONgV0uy9ZXl_Cwp8C-YbaXx-fNfbbGY"
@@ -59,7 +65,7 @@ def col_letter(idx):
 
 
 def find_target_sheet(sheets):
-    today      = datetime.now()
+    today      = now_myt()
     candidates = []
 
     for sheet in sheets:
@@ -213,7 +219,7 @@ def parse_date(s):
     for fmt in ("%d/%m/%Y", "%d/%m/%y", "%d/%m", "%d-%m-%Y", "%d-%m"):
         try:
             if fmt in ("%d/%m", "%d-%m"):
-                return datetime.strptime(s + f"/{datetime.now().year}", fmt + "/%Y")
+                return datetime.strptime(s + f"/{now_myt().year}", fmt + "/%Y")
             return datetime.strptime(s, fmt)
         except ValueError:
             pass
@@ -245,7 +251,7 @@ def main():
     if release_str:
         try:
             h, m       = map(int, release_str.replace(".", ":").split(":"))
-            now        = datetime.now()
+            now        = now_myt()
             release_at = now.replace(hour=h, minute=m, second=0, microsecond=0)
             if release_at <= now:
                 print(f"Release time {release_str} already passed — starting immediately.")
@@ -269,10 +275,10 @@ def main():
     print("Connected.\n")
 
     # Wait until 5 min before release
-    if slow_start and slow_start > datetime.now():
+    if slow_start and slow_start > now_myt():
         print(f"Waiting until {slow_start.strftime('%H:%M')} to start warm-up polling ...")
-        while datetime.now() < slow_start:
-            left    = (slow_start - datetime.now()).total_seconds()
+        while now_myt() < slow_start:
+            left    = (slow_start - now_myt()).total_seconds()
             m2, s2  = divmod(int(left), 60)
             print(f"  {m2:02d}:{s2:02d} remaining ...", flush=True)
             time.sleep(30)   # print status every 30s so Actions log stays alive
@@ -288,8 +294,8 @@ def main():
     while not done:
         try:
             attempt += 1
-            ts       = datetime.now().strftime("%H:%M:%S")
-            now      = datetime.now()
+            ts       = now_myt().strftime("%H:%M:%S")
+            now      = now_myt()
             interval = 2 if (rapid_at is None or now >= rapid_at) else 10
 
             sheets = list_sheets(service)
